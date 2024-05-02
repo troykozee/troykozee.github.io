@@ -1,0 +1,189 @@
+ <!doctype html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Confidence Interval Simulation</title>
+
+    <!-- Load external CSS styles -->
+
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="scripts.js"></script>
+</head>
+
+<body>
+
+
+
+    <h1>Confidence Interval Simulation</h1>
+    <h2>THE FIRST DRAFT OF THIS PAGE IS COMPLETE AND READY FOR FEEDBACK</H2>
+    <p>Confidence intervals are one way to use
+        statistics from a sample to make estimates about a population.
+        If a parameter's <a href="https://www.investopedia.com/terms/s/sampling-distribution.asp">sampling distribution</a> is well-understood, the
+        probabilities behind that distribution can be algebraically reversed to
+        estimate the parameter's value using sample data.</p>
+    <p>For this activity, we're going to simulate taking samples of dice rolls
+        and using the data from each sample to estimate the true mean dice roll
+        (which we can compute directly using probability).</p>
+    <p>To get started, complete the form below.
+
+
+    <form>
+        <label for="numsides">Number of sides on die:</label>
+        <input type="number" id="numsides" name="numsides" value="6"><br/>
+        <label for="samplesize">Number of rolls in a sample (&gt;30):</label>
+        <input type="number" id="samplesize" name="samplesize" value="40"><br/>
+        <label for="numsamples">Number of samples to take (&geq;1000):</label>
+        <input type="number" id="numsamples" name="numsamples" value="1000"><br/>
+        <label for="conflevel">Confidence Level:</label>
+        <select id="conflevel" name="conflevel">
+            <option value="90%">90%</option>
+            <option value="95%" selected>95%</option>
+            <option value="98%">98%</option>
+            <option value="99%">99%</option></select><br />
+        <label for="showsamp">Show the details of each sample:</label>
+        <input type="checkbox" id="showsamp" name="showsamp">
+    </form>
+    <button onclick="runSimulation()">Run Simulation!</button><span id="simulupdate"></span>
+
+    <div id="popdesc" style="display: none">
+        <h2>Population Parameters</h2>
+
+        <p>Since we understand the probabilities behind dice rolling, we can directly
+            calculate the mean and standard deviation of the population of all dice rolls,
+            anywhere in the universe, thoughout all time.
+        <h4 id="popinfo"></h4>
+    </div>
+
+    <div id="distdesc" style="display: none">
+        <h2>Sample(s) Statistics</h2>
+        <p>Below is a graph of individual dice rolls. These
+            are the combined results from all of the samples in your simulation.
+ <ol>
+                <li>What do you notice about the distribution of rolls?</li>
+                <li>What might explain that?</li>
+                <li>How is "natural variation" reflected in this graph?</li>
+            </ol>
+        <div id="rolldist" style="width:100%;max-width:600px"></div>
+                   </p>
+        <p>We also have a graph of sample means (ie. the mean of each sample) from the simulation. The true population
+            mean is marked with a dotted line.
+             <ol>
+                <li>How does the distribution of sample means compare to the previous graph?</li>
+                <li>When looking at the shape of this distribution, what are you reminded of?</li>
+                <li>Research the sampling distribution for sample mean. Why do you think the sample means
+                    in this graph are clustered around the population mean?</li>
+                <li>Based on what you know, how likely is it that you would naturally get a sample with a mean of 1.3?</li>
+            </ol>
+        <div id="meanhist" style="width:100%;max-width:600px"></div>
+                   
+        </p>
+    </div>
+
+    <div id="confdesc" style="display: none">
+        <h2>Confidence Intervals</h2>
+        <p>Pick a sample mean on the outer edges of the previous graph and another sample mean closer to the center. Which do you 
+		think provides a better estimate of the true population mean, and why?</p>
+		<p>In real-world studies we don't know the population mean, and we usually only have one sample to reference (instead 
+		of thousands). Put yourself in that position: you only have one of the above samples, and you don't know the population 
+		mean. Can you determine</p>
+            <ol>
+                <li> How close you are to the population mean?
+                <li> How representative your sample is of the larger population?
+            </ol>
+		<p> Confidence intervals provide an estimate for population mean (or other parameter) while accounting for the fact 
+		that some samples provide better estimates than others. Using the probabilities of a sampling distribution, they work 
+		backwards from a particular sample to estimate the different population means that could have plausibly produced that sample. 
+		For example, how many samples in the above graph had a mean of 1.3? We can turn that reasoning around: if our dice rolling 
+		produced a sample with a mean of 1.3, could the population mean plausibly be 3.4?</p>
+        <p>You can learn how to calculate confidence intervals <a href="https://www.khanacademy.org/math/statistics-probability/confidence-intervals-one-sample">here</a>, though most people use technology to find the interval itself. 
+		Any value in a sample's confidence interval is an equally plausible estimate for the population mean. We hope
+		that the true population mean is in the interval (ie. we have a representative sample), but there's really no way of knowing.</p>
+		<p>We control this uncertainty by attaching a "confidence level" to the estimate. Most studies use 95% or 99% confidence 
+		(or the equivalent), but any confidence level is technically possible. To understand how confidence works, let's look at the 
+		samples you generated</p>
+		<p>You generated <span id="sizeinfo"></span> dice rolling samples. For each sample, we constructed a <span id="confinfo"></span> 
+		confidence interval, and checked to see if it contained &mu;=<span id="muinfo"></span>. You can scroll through the results below.</p>
+        <textarea id="resultbox" rows="10" cols="73"></textarea>
+		
+		<p>All in all, <span id="intinfo"></span> samples resulted in a confidence interval that contained &mu;. Feel free To
+		scroll up and repeat this experiment multiple times for different sample sizes, number of samples and confidence levels.</p>
+		<ol>
+		<li>In your experiments, how did confidence affect the number of samples resulting in an interval containing &mu;?
+		<li>How does confidence account for the fact that some samples are more representative than others?
+		<li>Outside of generating thousands of samples, do we have a way of knowing how representative a single sample is?
+		</ol>
+	        <h2>Is higher confidence better?</h2>
+        <p>The natural temptation is to go to 99% or higher confidence, but that comes with tradeoffs. Click the button
+            to run one more sample.</p>
+        <button onclick="singleSample()">One more sample</button><br />
+    </div>
+
+
+    <div id="confexperiment" style="display:none">
+        <textarea id="confexsample" rows="5" cols="73"></textarea>
+        <p>Let's look at a 90%, 95%, 98% and 99% confidence interval for this sample.</p>
+        <div id="confgraph" style="width:100%;max-width:600px"></div>
+        <p>The graph above shows you both the sample mean and the population mean. A confidence interval is "built" around a
+            sample's mean, and you want an interval that includes the population mean. If you click the "One more sample" button
+            several times, you may get a sample whose 90% confidence interval doesn't contain the population mean. This is the benefit
+            of higher confidence.</p>
+		<p>However, higher confidence comes at a price. Compare the 99% interval to the 90% interval. Which one tells you more about where the population mean is?</p>
+		<p>In science class, you may have learned about accuracy vs precision. Higher confidence provides more accuracy, but at the expense of precision. 
+        <h2>The best of both worlds</h2>
+        <p>It is possible to get both a high level of confidence and high level of precision, but you need a
+            sufficiently large sample. You can experiment using the form below:
+        <form>
+            <label for="intwidth">Desired Interval Width:</label>
+            <input type="number" id="intwidth" name="intwidth" value=".5"><br/>
+            <label for="desiredconf">Desired Confidence Level:</label>
+            <select id="desiredconf" name="desiredconf">
+            <option value="90%">90%</option>
+            <option value="95%" selected>95%</option>
+            <option value="98%">98%</option>
+            <option value="99%">99%</option></select><br />
+        </form>
+        <button onclick="getSampleSize()">Calculate Sample Size</button>
+        </p>
+    </div>
+    <div id="widthexperiment" style="display:none">
+        <h4 id="neededsamplesize"></h4>
+        <p>To demonstrate this, we'll generate a sample of this size and produce a confidence interval from it.</p>
+        <textarea id="widthsampleoutput" rows="5" cols="73"></textarea><br/>
+        <div id="sizegraph" style="width:100%;max-width:600px"></div>
+        <p>If you look at the interval's bounds, you'll find they are approximately the width you requested. Researchers
+            use information like this in the planning phases of their research to determine how large a sample they
+            need.
+        </p>
+    </div>
+    <div id="guessmeanintro" style="display:none">
+        <h2>Guess the population mean!</h2>
+        <p>Let's put this knowledge to use. Press this button to generate a sample from an unknown population.</p>
+        <button onclick="generateUnknownSample()">One more sample(really)</button></br>
+    </div>
+    <div id="guessmeanguess" style="display:none">
+        <textarea id="unknownsampleoutput" rows="9" cols="73"></textarea><br/>
+        <p>Using the sample mean and standard deviation, guess the population mean! Provide an interval (low and high number)
+            that you believe contains the population mean. The difference between your high and low number can't be any more
+            than <span id="maxguesswidth"></span>.</p>
+        <form>
+            <label for="lowguess">The population mean is between&nbsp;</label>
+            <input type="number" id="lowguess" name="lowguess" style= "width: 5em;" />
+            <label for="highguess">&nbsp;and&nbsp;</label>
+            <input type="number" id="highguess" name="highguess" style= "width: 5em;" /><br />
+        </form>
+        <button onclick="checkGuess()">Check my guess!</button><br />
+        <h4 id="guessresult"></h4>
+    </div>
+        
+
+        
+
+
+
+</body>
+
+</html>
