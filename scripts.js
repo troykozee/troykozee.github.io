@@ -320,7 +320,7 @@ function generateUnknownSample()
 {
     let n = 30;
     let mu = getRndInteger(150,1200)/10;
-    let sigma = getRndInteger(30,100)/10;
+    let sigma = getRndInteger(50,200)/10;
 
     let sum = 0;
     let sumsquare = 0;
@@ -343,7 +343,7 @@ function generateUnknownSample()
     stringout += "\n\nSample Mean: " + xbar.toFixed(2) +"\n";
     stringout += "Sample Std Dev: " + sx.toFixed(2) + "\n";
     stringout += "Sample Size: " + n + "\n";
-    stringout += "DEBUG - mu " + mu + " sigma " + sigma + "\n";
+    //stringout += "DEBUG - mu " + mu + " sigma " + sigma + "\n";
 
     let outputBox = document.getElementById("unknownsampleoutput");
     
