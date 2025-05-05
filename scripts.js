@@ -318,7 +318,7 @@ function getSampleSize() {
 
 function generateUnknownSample()
 {
-    let n = 35;
+    let n = 30;
     let mu = getRndInteger(150,1200)/10;
     let sigma = getRndInteger(50,200)/10;
 
@@ -356,7 +356,7 @@ function generateUnknownSample()
     document.getElementById("guessresult").innerHTML = "";
     
     showElements(true, "guessmeanguess");
-    showElement(false,"guessGetMuBtn");
+    showElements(false,"guessGetMuBtn");
     sessionStorage.setItem("ciguess-mu", mu.toString());
     sessionStorage.setItem("ciguess-ciwidth", width95.toString());
     sessionStorage.setItem("ciguess-count","0");
@@ -406,7 +406,7 @@ function checkGuess()
     }
 
     if (count >= 3 && !correctGuess)
-        showElement(true,"guessGetMuBtn");
+        showElements(true,"guessGetMuBtn");
 
     guessresult.scrollIntoView();
 }
