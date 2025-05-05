@@ -356,6 +356,7 @@ function generateUnknownSample()
     document.getElementById("guessresult").innerHTML = "";
     
     showElements(true, "guessmeanguess");
+    showElement(false,"guessGetMuBtn");
     sessionStorage.setItem("ciguess-mu", mu.toString());
     sessionStorage.setItem("ciguess-ciwidth", width95.toString());
     sessionStorage.setItem("ciguess-count","0");
