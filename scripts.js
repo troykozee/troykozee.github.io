@@ -352,18 +352,30 @@ function generateUnknownSample()
 
     let width95 = 1.96*sx / Math.sqrt(n) * 2 + .1 ;
     width95 = Math.ceil(width95*10)/10;
-    document.getElementById("maxguesswidth").innerHTML = (width95);
+    //document.getElementById("maxguesswidth").innerHTML = (width95);
     document.getElementById("guessresult").innerHTML = "";
     
     showElements(true, "guessmeanguess");
     sessionStorage.setItem("ciguess-mu", mu.toString());
     sessionStorage.setItem("ciguess-ciwidth", width95.toString());
+    sessionStorage.setItem("ciguess-count","0");
+    sessionStorage.setItem("ciguess-shownmu","F");
 }
 
 function checkGuess()
 {
+
+    let shownMu = sessionStorage.getItem("ciguess-shownmu");
+
+    if (shownMu == "T")
+        return;
+    
     let mu = parseFloat(sessionStorage.getItem("ciguess-mu"));
     let width95 = parseFloat(sessionStorage.getItem("ciguess-ciwidth"));
+    //update count
+    let count = parseFloat(sessionStorage.getItem("ciguess-count")); 
+    count++;
+    sessionStorage.setItem("ciguess-count",count.toString());
 
     let lowguess = parseFloat(document.forms[2].elements["lowguess"].value);
     let highguess = parseFloat(document.forms[2].elements["highguess"].value);
@@ -377,20 +389,32 @@ function checkGuess()
         highguess = temp;
     }
 
+    let correctGuess = false;
     if (highguess - lowguess > width95 * 1.02)
     {
-        guessresult.innerHTML = "This guess is too wide. Your high and low guesses can only be "+width95+ " apart. Guess again.";
+        guessresult.innerHTML = "This guess is too wide. Your high and low guesses need to be closer together. Guess again.";
     }
     else if (lowguess < mu && mu < highguess)
     {
         guessresult.innerHTML = "Nice work! The true mean was "+ mu + "!";
+        correctGuess = true;
     }
     else
     {
         guessresult.innerHTML = "Your guess does not contain the population mean. Try again!";
     }
 
+    if (count >= 3 && !correctGuess)
+        showElement(true,"guessGetMuBtn");
+
     guessresult.scrollIntoView();
+}
+
+function showMean()
+{
+    let mu = parseFloat(sessionStorage.getItem("ciguess-mu"));
+    guessresult.innerHTML = "The true mean was "+ mu + ". Other than a calculation mistake on your part, what are some reasons why you had difficulty finding the mean with this sample? Try again and see if you can find the mean!";
+    sessionStorage.setItem("ciguess-shownmu","T");
 }
 
 function showElements(visible, ...elementList) {
