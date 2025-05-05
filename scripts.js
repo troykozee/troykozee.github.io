@@ -318,7 +318,7 @@ function getSampleSize() {
 
 function generateUnknownSample()
 {
-    let n = 30;
+    let n = 35;
     let mu = getRndInteger(150,1200)/10;
     let sigma = getRndInteger(50,200)/10;
 
