@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Normal Distribution Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #f9f7f4;
+  --panel:  #ffffff;
+  --border: #e3ddd6;
+  --text:   #2d2520;
+  --dim:    #9b8f86;
+  --accent: #c96422;
+  --glow:   rgba(201,100,34,0.15);
+  --amber:  #2563eb;
+  --blue1:  rgba(100,185,255,0.75);
+  --blue2:  rgba(100,185,255,0.38);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 32px;
+  gap: 14px;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 28px var(--glow);
+}
+.subtitle {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+/* ── Plot ─────────────────────────────────────────── */
+.plot-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 420px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#canvas.grabbing { cursor: grabbing; }
+
+.btn-group {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+.ico {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.92);
+  color: var(--dim);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s, border-color .15s, background .15s;
+  backdrop-filter: blur(6px);
+  line-height: 1;
+}
+.ico:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(201,100,34,0.07);
+}
+
+/* ── Controls ─────────────────────────────────────── */
+.controls {
+  width: 100%;
+  max-width: 880px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 28px;
+}
+
+.ctrl { display: flex; flex-direction: column; gap: 7px; }
+.ctrl-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+  cursor: pointer;
+  transition: transform .12s;
+}
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
+input[type="range"]::-moz-range-thumb {
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.num {
+  width: 76px;
+  background: #f9f7f4;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  padding: 5px 7px;
+  text-align: center;
+  outline: none;
+  transition: border-color .15s;
+}
+.num:focus { border-color: var(--accent); }
+.num::-webkit-outer-spin-button,
+.num::-webkit-inner-spin-button { -webkit-appearance: none; }
+.num[type="number"] { -moz-appearance: textfield; }
+
+/* ── Legend ───────────────────────────────────────── */
+.legend {
+  width: 100%;
+  max-width: 880px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+  align-items: center;
+}
+.leg { display: flex; align-items: center; gap: 7px; }
+.leg-line {
+  width: 22px; height: 0;
+  border-bottom: 2px dashed;
+}
+.leg-line.s1 { border-color: rgba(100,185,255,0.8), lw: 1.5; }
+.leg-line.s2 { border-color: rgba(100,185,255,0.8); }
+.leg-line.mk { border-color: var(--amber); border-width: 3px; }
+.leg span { font-size: 0.6rem; letter-spacing: 0.06em; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">Normal Distribution</div>
+  <div class="subtitle">Explorer</div>
+</header>
+
+<div class="plot-wrap">
+  <canvas id="canvas"></canvas>
+  <div class="btn-group">
+    <button class="ico" id="btnPlus"  title="Zoom in">+</button>
+    <button class="ico" id="btnMinus" title="Zoom out">−</button>
+    <button class="ico" id="btnC"     title="Center view (C)">C</button>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl">
+    <div class="ctrl-label">Mean &nbsp;(μ)</div>
+    <div class="ctrl-row">
+      <input type="range"  id="slMean"  min="0" max="100" value="50">
+      <input type="number" id="inMean"  class="num" value="0"  step="any">
+    </div>
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-label">Std Deviation &nbsp;(σ)</div>
+    <div class="ctrl-row">
+      <input type="range"  id="slSigma" min="0" max="100" value="50">
+      <input type="number" id="inSigma" class="num" value="1" step="any" min="0.0001">
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-line s1"></div><span>±1σ</span></div>
+  <div class="leg"><div class="leg-line s2"></div><span>±2σ</span></div>
+  <div class="leg"><div class="leg-line mk"></div><span>mark — click axis to set &nbsp;·&nbsp; dbl‑click to remove</span></div>
+</div>
+
+<script>
+'use strict';
+
+// ─── Elements ────────────────────────────────────────────────────────
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const slMean  = document.getElementById('slMean');
+const slSigma = document.getElementById('slSigma');
+const inMean  = document.getElementById('inMean');
+const inSigma = document.getElementById('inSigma');
+
+// ─── State ───────────────────────────────────────────────────────────
+let mean  = 0;
+let sigma = 1;
+let viewXMin = -4;
+let viewXMax =  4;
+let yMax     = 0.54;  // will be set properly on init
+let mark     = null;
+
+// Raw slider positions [0‑100] — visual thumb position, independent of mapping
+let rawMean  = 50;
+let rawSigma = 50;
+
+// Current slider‑to‑value mappings (updated silently on zoom/pan)
+let mMin, mMax;       // mean  slider: raw 0→mMin, 100→mMax
+let sMin, sMax;       // sigma slider: raw 0→sMin, 100→sMax
+
+// Canvas logical CSS dimensions
+let W = 0, H = 0;
+const DPR = () => window.devicePixelRatio || 1;
+
+// Plot padding (CSS px)
+const PL = 64, PR = 20, PT = 22, PB = 50;
+const pw = () => W - PL - PR;
+const ph = () => H - PT - PB;
+
+// ─── Coordinate helpers ───────────────────────────────────────────────
+const wx = x  => PL + (x - viewXMin) / (viewXMax - viewXMin) * pw();
+const wy = y  => H - PB - (y / yMax) * ph();
+const xw = px => viewXMin + (px - PL) / pw() * (viewXMax - viewXMin);
+
+// ─── Math ─────────────────────────────────────────────────────────────
+function pdf(x) {
+  return (1 / (sigma * Math.sqrt(2 * Math.PI))) *
+         Math.exp(-0.5 * ((x - mean) / sigma) ** 2);
+}
+
+function niceTicks(lo, hi, n) {
+  if (!isFinite(lo) || !isFinite(hi) || hi <= lo || n <= 0) return [];
+  const rng  = hi - lo;
+  const raw  = rng / n;
+  const mag  = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const s    = (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * mag;
+  const st   = Math.ceil(lo / s) * s;
+  const out  = [];
+  for (let t = st; t <= hi + s * 1e-9; t = Math.round((t + s) / s) * s)
+    out.push(parseFloat(t.toPrecision(12)));
+  return out;
+}
+
+function tickStep(ticks) {
+  return ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : 1;
+}
+
+function fmtN(v, step) {
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  if (a >= 1e5 || (a < 1e-3 && a > 0)) return v.toExponential(1);
+  if (!step) return v.toPrecision(4);
+  const dp = step < 1 ? Math.ceil(-Math.log10(step)) + 1 : 0;
+  return v.toFixed(Math.max(0, Math.min(dp, 6)));
+}
+
+// ─── Slider mappings ──────────────────────────────────────────────────
+function updateMappings() {
+  const vc = (viewXMin + viewXMax) / 2;
+  const vw = viewXMax - viewXMin;
+  mMin = vc - vw;
+  mMax = vc + vw;
+  sMin = Math.max(1e-5, vw * 0.005);
+  sMax = vw / 4;
+  // guard against invalid range
+  if (sMax <= sMin) sMax = sMin * 10;
+}
+
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+
+const meanFromRaw  = r => mMin + (r / 100) * (mMax - mMin);
+const rawFromMean  = m => clamp((m - mMin) / (mMax - mMin) * 100, 0, 100);
+const sigmaFromRaw = r => sMin + (r / 100) * (sMax - sMin);
+const rawFromSigma = s => clamp((s - sMin) / (sMax - sMin) * 100, 0, 100);
+
+// ─── Drawing ──────────────────────────────────────────────────────────
+function draw() {
+  const d = DPR();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(d, d);
+
+  // ── Background ─────────────────────────────────────────────────────
+  ctx.fillStyle = '#f9f7f4';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Clip to plot area ──────────────────────────────────────────────
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PL, PT, pw(), ph());
+  ctx.clip();
+
+  // ── Grid ───────────────────────────────────────────────────────────
+  const xTicks = niceTicks(viewXMin, viewXMax, 8);
+  const yTicks = niceTicks(0, yMax, 5);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#ede8e2';
+  for (const t of xTicks) {
+    const cx = wx(t);
+    ctx.beginPath(); ctx.moveTo(cx, PT); ctx.lineTo(cx, H - PB); ctx.stroke();
+  }
+  for (const t of yTicks) {
+    if (t <= 0) continue;
+    const cy = wy(t);
+    ctx.beginPath(); ctx.moveTo(PL, cy); ctx.lineTo(W - PR, cy); ctx.stroke();
+  }
+
+  // ── Normal curve fill ──────────────────────────────────────────────
+  const vw = viewXMax - viewXMin;
+  const NP = Math.max(500, pw() * 2) | 0;
+  const dx = vw / NP;
+
+  ctx.beginPath();
+  ctx.moveTo(wx(viewXMin), wy(0));
+  for (let i = 0; i <= NP; i++) {
+    const x = viewXMin + i * dx;
+    ctx.lineTo(wx(x), wy(pdf(x)));
+  }
+  ctx.lineTo(wx(viewXMax), wy(0));
+  ctx.closePath();
+
+  const grd = ctx.createLinearGradient(0, PT, 0, H - PB);
+  grd.addColorStop(0,   'rgba(201,100,34,0.22)');
+  grd.addColorStop(0.6, 'rgba(201,100,34,0.08)');
+  grd.addColorStop(1,   'rgba(201,100,34,0.01)');
+  ctx.fillStyle = grd;
+  ctx.fill();
+
+  // ── Curve stroke ───────────────────────────────────────────────────
+  ctx.beginPath();
+  for (let i = 0; i <= NP; i++) {
+    const x = viewXMin + i * dx;
+    const y = wy(pdf(x));
+    i === 0 ? ctx.moveTo(wx(x), y) : ctx.lineTo(wx(x), y);
+  }
+  ctx.strokeStyle = '#c96422';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#c96422';
+  ctx.shadowBlur = 14;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── σ dashed lines ─────────────────────────────────────────────────
+  const sigLines = [
+    { x: mean - sigma,   color: 'rgba(37,99,235,0.70)',  dash: [5,4], lw: 1.5, lbl: '−σ'  },
+    { x: mean + sigma,   color: 'rgba(37,99,235,0.70)',  dash: [5,4], lw: 1.5, lbl: '+σ'  },
+    { x: mean - 2*sigma, color: 'rgba(37,99,235,0.7)',  dash: [3,5], lw: 1.0, lbl: '−2σ' },
+    { x: mean + 2*sigma, color: 'rgba(37,99,235,0.7)',  dash: [3,5], lw: 1.0, lbl: '+2σ' },
+  ];
+  for (const sl of sigLines) {
+    const cx = wx(sl.x);
+    ctx.setLineDash(sl.dash);
+    ctx.beginPath(); ctx.moveTo(cx, PT); ctx.lineTo(cx, H - PB);
+    ctx.strokeStyle = sl.color;
+    ctx.lineWidth = sl.lw;
+    ctx.stroke();
+    // small label near top
+    ctx.setLineDash([]);
+    ctx.font = '9px DM Mono, monospace';
+    ctx.fillStyle = sl.color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(sl.lbl, cx, PT + 3);
+  }
+  ctx.setLineDash([]);
+
+  // ── Mean vertical line (subtle) ────────────────────────────────────
+  const mCx = wx(mean);
+  ctx.beginPath(); ctx.moveTo(mCx, PT); ctx.lineTo(mCx, H - PB);
+  ctx.strokeStyle = 'rgba(201,100,34,0.18)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // ── Mark line ──────────────────────────────────────────────────────
+  if (mark !== null) {
+    const mx = wx(mark);
+    ctx.setLineDash([9,5]);
+    ctx.beginPath(); ctx.moveTo(mx, PT); ctx.lineTo(mx, H - PB);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#2563eb';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.setLineDash([]);
+    // value label
+    const lbl = mark.toFixed(4);
+    const onRight = mx < PL + pw() * 0.6;
+    ctx.font = '10px DM Mono, monospace';
+    ctx.fillStyle = '#2563eb';
+    ctx.textAlign = onRight ? 'left' : 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(lbl, mx + (onRight ? 5 : -5), PT + 3);
+  }
+
+  ctx.restore(); // end clip
+
+  // ── Axes ───────────────────────────────────────────────────────────
+  ctx.strokeStyle = '#c9bfb5';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PL, H - PB); ctx.lineTo(W - PR, H - PB); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PL, PT - 2); ctx.lineTo(PL, H - PB + 1); ctx.stroke();
+
+  // ── X ticks & labels ───────────────────────────────────────────────
+  const xStep = tickStep(xTicks);
+  ctx.fillStyle = '#7a6e66';
+  ctx.strokeStyle = '#c9bfb5';
+  ctx.lineWidth = 1;
+  ctx.font = '10.5px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (const t of xTicks) {
+    const cx = wx(t);
+    if (cx < PL - 1 || cx > W - PR + 1) continue;
+    ctx.beginPath(); ctx.moveTo(cx, H - PB); ctx.lineTo(cx, H - PB + 5); ctx.stroke();
+    ctx.fillText(fmtN(t, xStep), cx, H - PB + 7);
+  }
+
+  // ── Y ticks & labels ───────────────────────────────────────────────
+  const yStep = tickStep(yTicks);
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (const t of yTicks) {
+    if (t < 0) continue;
+    const cy = wy(t);
+    if (cy < PT - 1 || cy > H - PB + 1) continue;
+    ctx.beginPath(); ctx.moveTo(PL, cy); ctx.lineTo(PL - 5, cy); ctx.stroke();
+    ctx.fillText(fmtN(t, yStep), PL - 8, cy);
+  }
+  // y=0 label at axis
+  ctx.fillText('0', PL - 8, H - PB);
+
+  // ── Axis labels ────────────────────────────────────────────────────
+  ctx.fillStyle = '#b0a49c';
+  ctx.font = '10px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('x', (PL + W - PR) / 2, H - 4);
+  ctx.save();
+  ctx.translate(13, (PT + H - PB) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('f(x)', 0, 0);
+  ctx.restore();
+
+  ctx.restore(); // end dpr scale
+}
+
+// ─── Resize ───────────────────────────────────────────────────────────
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  W = r.width;
+  H = r.height;
+  const d = DPR();
+  canvas.width  = Math.round(W * d);
+  canvas.height = Math.round(H * d);
+  draw();
+}
+new ResizeObserver(resize).observe(canvas);
+
+// ─── Center view ──────────────────────────────────────────────────────
+function centerView() {
+  const span = Math.max(sigma * 4, 1e-4);
+  viewXMin = mean - span;
+  viewXMax = mean + span;
+  const peak = pdf(mean);
+  yMax = (peak > 0 && isFinite(peak)) ? peak * 1.38 : 0.5;
+  updateMappings();
+  // Visibly update sliders
+  rawMean  = rawFromMean(mean);
+  rawSigma = rawFromSigma(sigma);
+  slMean.value  = rawMean;
+  slSigma.value = rawSigma;
+  inMean.value  = +mean.toFixed(5);
+  inSigma.value = +sigma.toFixed(5);
+  draw();
+}
+document.getElementById('btnC').addEventListener('click', centerView);
+
+// ─── Zoom ─────────────────────────────────────────────────────────────
+const MIN_VW = 1e-7;
+const MAX_VW = 1e9;
+
+function zoom(factor, pivotSX) {
+  const rect = canvas.getBoundingClientRect();
+  const pivotCX = pivotSX !== undefined ? (pivotSX - rect.left) : (PL + pw() / 2);
+  const pivot = xw(pivotCX);
+  const scale  = 1 / factor;   // > 1 → expand (zoom out), < 1 → shrink (zoom in)
+  const nMin = pivot + (viewXMin - pivot) * scale;
+  const nMax = pivot + (viewXMax - pivot) * scale;
+  const nVW  = nMax - nMin;
+  if (nVW < MIN_VW || nVW > MAX_VW) return;
+  viewXMin = nMin;
+  viewXMax = nMax;
+  updateMappings();
+  draw();
+}
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+  zoom(factor, e.clientX);
+}, { passive: false });
+
+document.getElementById('btnPlus').addEventListener('click',  () => zoom(1.5));
+document.getElementById('btnMinus').addEventListener('click', () => zoom(1 / 1.5));
+
+// ─── Pan ──────────────────────────────────────────────────────────────
+let panning = false;
+let panX0 = 0, panVMin0 = 0, panVMax0 = 0;
+let dragDist = 0;
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  panning  = true;
+  dragDist = 0;
+  panX0    = e.clientX;
+  panVMin0 = viewXMin;
+  panVMax0 = viewXMax;
+  canvas.classList.add('grabbing');
+});
+
+window.addEventListener('mousemove', e => {
+  if (!panning) return;
+  dragDist += Math.abs(e.movementX);
+  const worldDx = (e.clientX - panX0) / pw() * (viewXMax - viewXMin);
+  viewXMin = panVMin0 - worldDx;
+  viewXMax = panVMax0 - worldDx;
+  updateMappings();
+  draw();
+});
+
+window.addEventListener('mouseup', () => {
+  panning = false;
+  canvas.classList.remove('grabbing');
+});
+
+// Touch pan
+let touchX0 = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  e.preventDefault();
+  dragDist = 0;
+  touchX0  = e.touches[0].clientX;
+  panVMin0 = viewXMin;
+  panVMax0 = viewXMax;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length !== 1) return;
+  e.preventDefault();
+  const dx = e.touches[0].clientX - touchX0;
+  dragDist += Math.abs(dx - (panVMin0 !== viewXMin ? dx : 0));
+  const worldDx = (e.touches[0].clientX - touchX0) / pw() * (viewXMax - viewXMin);
+  viewXMin = panVMin0 - worldDx;
+  viewXMax = panVMax0 - worldDx;
+  updateMappings();
+  draw();
+}, { passive: false });
+
+// ─── Sliders ──────────────────────────────────────────────────────────
+slMean.addEventListener('input', () => {
+  rawMean  = +slMean.value;
+  mean     = meanFromRaw(rawMean);
+  inMean.value = +mean.toFixed(5);
+  draw();
+});
+
+slSigma.addEventListener('input', () => {
+  rawSigma = +slSigma.value;
+  sigma    = Math.max(1e-5, sigmaFromRaw(rawSigma));
+  inSigma.value = +sigma.toFixed(5);
+  draw();
+});
+
+// ─── Number inputs ────────────────────────────────────────────────────
+inMean.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const v = parseFloat(inMean.value);
+  if (isFinite(v)) { mean = v; centerView(); }
+});
+
+inSigma.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const v = parseFloat(inSigma.value);
+  if (isFinite(v) && v > 0) { sigma = v; centerView(); }
+});
+
+// ─── Mark on x‑axis ───────────────────────────────────────────────────
+let clickTimer = null;
+
+canvas.addEventListener('click', e => {
+  if (dragDist > 5) return;              // was a pan, not a click
+  const rect = canvas.getBoundingClientRect();
+  const py   = e.clientY - rect.top;
+  const px   = e.clientX - rect.left;
+
+  // Must be within ±24px of the x‑axis line
+  if (Math.abs(py - (H - PB)) > 24) return;
+  // Must be within plot x range
+  if (px < PL || px > W - PR) return;
+
+  const worldX = xw(px);
+
+  if (clickTimer !== null) {
+    // Second click within delay → treat as double‑click: clear mark
+    clearTimeout(clickTimer);
+    clickTimer = null;
+    mark = null;
+    draw();
+    return;
+  }
+
+  clickTimer = setTimeout(() => {
+    clickTimer = null;
+    mark = worldX;
+    draw();
+  }, 260);
+});
+
+// Fallback dblclick removes mark too
+canvas.addEventListener('dblclick', e => {
+  const rect = canvas.getBoundingClientRect();
+  const py   = e.clientY - rect.top;
+  if (Math.abs(py - (H - PB)) > 24) return;
+  if (clickTimer !== null) { clearTimeout(clickTimer); clickTimer = null; }
+  mark = null;
+  draw();
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────
+(function init() {
+  // Initial view: μ=0, σ=1 → viewXMin=-4, viewXMax=4
+  updateMappings();
+  yMax     = pdf(mean) * 1.38;
+  rawMean  = rawFromMean(mean);
+  rawSigma = rawFromSigma(sigma);
+  slMean.value  = rawMean;
+  slSigma.value = rawSigma;
+  inMean.value  = mean;
+  inSigma.value = sigma;
+  // Trigger first draw via resize observer (fires on initial attach)
+})();
+</script>
+</body>
+</html>
