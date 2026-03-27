@@ -352,7 +352,7 @@ function generateUnknownSample()
 
     let width95 = 1.96*sx / Math.sqrt(n) * 2 + .1 ;
     width95 = Math.ceil(width95*10)/10;
-    //document.getElementById("maxguesswidth").innerHTML = (width95);
+    document.getElementById("maxguesswidth").innerHTML = (width95);
     document.getElementById("guessresult").innerHTML = "";
     
     showElements(true, "guessmeanguess");
