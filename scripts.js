@@ -391,7 +391,7 @@ function checkGuess()
     }
 
     let correctGuess = false;
-    if (highguess - lowguess > width95 * 1.02)
+    if (highguess - lowguess > width95 * 1.1)
     {
         guessresult.innerHTML = "This guess is too wide. Your high and low guesses need to be closer together. Guess again.";
     }
