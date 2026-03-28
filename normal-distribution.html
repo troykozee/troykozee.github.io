@@ -18,6 +18,7 @@
   --glow:    rgba(201,100,34,0.15);
   --blue:    #2563eb;
   --blue-bg: rgba(37,99,235,0.08);
+  --mark:    #a8294a;
 }
 
 body {
@@ -254,7 +255,7 @@ input[type="range"].sl-blue::-moz-range-thumb {
 }
 .leg-line.s1 { border-color: rgba(37,99,235,0.70); }
 .leg-line.s2 { border-color: rgba(37,99,235,0.36); }
-.leg-line.mk { border-color: #c96422; border-width: 2.5px; border-style: dashed; }
+.leg-line.mk { border-color: #a8294a; border-width: 2.5px; border-style: dashed; }
 .leg span { font-size: 0.68rem; color: var(--dim); }
 </style>
 </head>
@@ -306,7 +307,7 @@ input[type="range"].sl-blue::-moz-range-thumb {
 <div class="legend">
   <div class="leg"><div class="leg-line s1"></div><span>±1σ</span></div>
   <div class="leg"><div class="leg-line s2"></div><span>±2σ</span></div>
-  <div class="leg"><div class="leg-line mk"></div><span>User mark — click axis to set · double-click to remove</span></div>
+  <div class="leg"><div class="leg-line mk"></div><span>User mark — click axis to set · double-click to remove · hold shift when sliding mean to snap-to edge of area under curve</span></div>
 </div>
 
 <script>
@@ -587,16 +588,16 @@ function draw() {
     const mx = wx(mark);
     ctx.setLineDash([8,5]);
     ctx.beginPath(); ctx.moveTo(mx,PT); ctx.lineTo(mx,H-PB);
-    ctx.strokeStyle = '#c96422';
+    ctx.strokeStyle = '#a8294a';
     ctx.lineWidth = 2.2;
-    ctx.shadowColor = '#c96422';
+    ctx.shadowColor = '#a8294a';
     ctx.shadowBlur  = 10;
     ctx.stroke();
     ctx.shadowBlur = 0;
     ctx.setLineDash([]);
     const onRight = mx < PL + pw()*0.6;
     ctx.font = '10px DM Mono, monospace';
-    ctx.fillStyle = '#c96422';
+    ctx.fillStyle = '#a8294a';
     ctx.textAlign = onRight ? 'left' : 'right';
     ctx.textBaseline = 'top';
     ctx.fillText(mark.toFixed(4), mx + (onRight?5:-5), PT+3);
@@ -762,10 +763,56 @@ canvas.addEventListener('touchmove', e => {
   updateMappings(); draw();
 }, { passive:false });
 
+// ─── Shift key tracking (e.shiftKey unreliable on range input in Firefox) ──
+let shiftDown = false;
+window.addEventListener('keydown', e => { if (e.key === 'Shift') shiftDown = true; });
+window.addEventListener('keyup',   e => { if (e.key === 'Shift') shiftDown = false; });
+window.addEventListener('blur',    ()  => { shiftDown = false; });
+
+// ─── Snap-to helpers ──────────────────────────────────────────────────
+// Returns the mean value(s) that would place an area boundary on the mark.
+function snapTargets() {
+  if (mark === null || areaFrac <= 0) return [];
+  const f = Math.min(areaFrac, 1 - 1e-9);
+  const targets = [];
+  if (areaMode === 'left') {
+    // boundary = mean + sigma*sqrt2*erfinv(2f-1)
+    const offset = sigma * Math.SQRT2 * erfinv(2*f - 1);
+    targets.push(mark - offset);
+  } else if (areaMode === 'right') {
+    // boundary = mean - sigma*sqrt2*erfinv(2f-1)  (erfinv of negative = negative)
+    const offset = sigma * Math.SQRT2 * erfinv(2*f - 1);
+    targets.push(mark + offset);
+  } else {
+    // center: boundaries at mean ± d where d = sigma*sqrt2*erfinv(f)
+    const d = sigma * Math.SQRT2 * erfinv(f);
+    targets.push(mark - d);  // right boundary hits mark
+    targets.push(mark + d);  // left  boundary hits mark
+  }
+  return targets.filter(isFinite);
+}
+
 // ─── Mean & sigma sliders ─────────────────────────────────────────────
-slMean.addEventListener('input', () => {
+// Snap threshold: ±8 raw units out of 100 (intentionally wide — shift must be held)
+const SNAP_RAW = 8;
+
+slMean.addEventListener('input', e => {
   rawMean = +slMean.value;
-  mean = meanFromRaw(rawMean);
+  let candidateMean = meanFromRaw(rawMean);
+
+  if (shiftDown && mark !== null && areaFrac > 0) {
+    for (const target of snapTargets()) {
+      const targetRaw = rawFromMean(target);
+      if (Math.abs(rawMean - targetRaw) <= SNAP_RAW) {
+        candidateMean = target;
+        slMean.value = targetRaw;
+        rawMean = targetRaw;
+        break;
+      }
+    }
+  }
+
+  mean = candidateMean;
   inMean.value = +mean.toFixed(5);
   draw();
 });
